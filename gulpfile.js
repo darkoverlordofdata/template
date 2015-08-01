@@ -48,12 +48,13 @@
  * | -- .bowerrc               define ./packages
  * | -- .gitignore             build, node_modules, tmp, packages
  * | -- bower.json             module name, packages
- * | -- csconfig.json          coffee-script project config
- * | -- gulpfile.coffee        this workflow
+ * | -- gulpfile.js            this workflow
  * | -- gulpfile.json          gulpfile configuration
+ * | -- jsconfig.json          javascript project config
  * | -- license.md
- * | -- packages.json          output packages name
- * + -- readme.md
+ * | -- package.json           node project info
+ * | -- readme.md
+ * + -- tsconfig.json
 #
  * coffee -o .. -cb gulpfile.coffee
 #
