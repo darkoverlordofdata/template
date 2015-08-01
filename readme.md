@@ -10,6 +10,7 @@
 #Template
 
 script project template
+supports WebStorm and VS Code
 
 
      Tasks:
@@ -24,6 +25,7 @@ script project template
      test    - open web\ in browser
     
      project
+     | -- .settings              VS Code folder
      | -- bin                    tools
      | -- build                  output folder for zip
      | -- example                example using the lib
