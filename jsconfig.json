@@ -1,7 +1,5 @@
 {
     "files": [
-        "web/packages/template/index.js",
-        "web/packages/template/src/app.js"
    ]
 	
 }
