@@ -18,11 +18,6 @@
     "tests"
   ],
   "dependencies": {
-    "cocoonjs": "git://github.com/ludei/cocoonjs-plugins#~3.0.4",
-    "phaser": "2.0.7"
-  },
-  "packages": {
-    "cocoonjs": "cocoonjs/build/cocoon.min.js",
-    "phaser": "phaser/build/*.js"
+    "closure-compiler": "http://dl.google.com/closure-compiler/compiler-latest.zip"
   }
 }

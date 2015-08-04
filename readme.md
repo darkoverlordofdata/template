@@ -13,50 +13,51 @@ script project template
 supports WebStorm and VS Code
 
 
-     Tasks:
-    
-     build   - create build/web
-     deploy  - deploy to location
-     dist    - create build bundles
-     get     - gets packages dependencies in bower
-     help    - display this message
-     publish - publish gh-pages
-     serve   - open build\web\ in browser
-     test    - open web\ in browser
-    
-     project
-     | -- .settings              VS Code folder
-     | -- bin                    tools
-     | -- build                  output folder for zip
-     | -- example                example using the lib
-     | -- lib                    defines this packages
-     | -- node_modules           npm dependencies
-     | -- packages               bower external packages
-     | -- test                   unit tests
-     | -- tools                  other tools
-     | -- web                    source
-     |     | -- index.html       default web page
-     |     | -- main.js          cocos2d boot
-     |     | -- manifest.json    android 'save to home screen'
-     |     | -- project.json     cocos2d manifest
-     |     | -- frameworks       cocos2d lib
-     |     | -- res              resources
-     |     + -- (src | packages) packages
-     |           | -- {lib}
-     |           | -- example
-     |
-     | -- .bowerrc               define ./packages
-     | -- .gitignore             build, node_modules, tmp, packages
-     | -- bower.json             module name, packages
-     | -- gulpfile.js            this workflow
-     | -- gulpfile.json          gulpfile configuration
-     | -- jsconfig.json          javascript project config
-     | -- license.md
-     | -- packags.json           node project info
-     | -- readme.md
-     + -- tsconfig.json
-    
-     coffee -o .. -cb gulpfile.coffee
+      Tasks:
+     
+      build   - compile app to build/
+      deploy  - deploy build/web/ to location
+      get     - get dependencies from bower repository
+      help    - display this message
+      publish - publish build/web/ to gh-pages
+      serve   - open build/web in browser
+      test    - open web/ in browser with live reload
+     
+      | -- bin                    public tools
+      | -- build                  compiled output
+      | -- example                example using the lib
+      | -- lib                    sources for this project
+      | -- node_modules           npm dependencies
+      | -- packages               repository
+      | -- test                   unit tests
+      | -- tools                  private tools
+      |     | -- config.json      this workflow config
+      |     | -- gulpfile.coffee  this workflow source
+      |     | -- server.js        superstatic configured to preview this project
+      |     + -- ...
+      | -- web                    app root
+      |     | -- index.html       default web page
+      |     | -- main.js          default script
+      |     | -- manifest.json    android 'save to home screen'
+      |     | -- project.json     cocos2d manifest
+      |     | -- frameworks       cocos2d lib
+      |     | -- res              resources
+      |     + -- (src | packages) compiled lib target, respository pre-built
+      |           | -- {lib}
+      |           | -- example
+      |           + -- ...
+      | -- .bowerrc               define ./packages repository
+      | -- .gitignore             build, node_modules, tmp, packages
+      | -- bower.json             module name, packages
+      | -- gulpfile.js            this workflow
+      | -- jsconfig.json          javascript project config
+      | -- license.md
+      | -- package.json           node project info
+      | -- readme.md
+      + -- tsconfig.json          typescript project file
+     
+      coffee -o .. -cb gulpfile.coffee
+     
     
 
 

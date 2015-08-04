@@ -14,61 +14,66 @@
 #
 # Tasks:
 #
-# build   - build lib sources to web/src/{{lib}}, copy to build/web
-# deploy  - deploy to location
-# dist    - create dist bundle
-# get     - gets packages dependencies using bower
+# build   - compile app to build/
+# deploy  - deploy build/web/ to location
+# get     - get dependencies from bower repository
 # help    - display this message
-# publish - publish gh-pages
-# serve   - open build\web\ in browser
-# test    - open web\ in browser
+# publish - publish build/web/ to gh-pages
+# serve   - open build/web in browser
+# test    - open web/ in browser with live reload
 #
-# project
-# | -- bin                    tools
-# | -- build                  output folder for zip
+# | -- bin                    public tools
+# | -- build                  compiled output
 # | -- example                example using the lib
-# | -- lib                    defines this packages
+# | -- lib                    sources for this project
 # | -- node_modules           npm dependencies
-# | -- packages               bower external packages
+# | -- packages               repository
 # | -- test                   unit tests
-# | -- tools                  other tools
-# | -- web                    source
+# | -- tools                  private tools
+# |     | -- config.json      this workflow config
+# |     | -- gulpfile.coffee  this workflow source
+# |     | -- server.js        superstatic configured to preview this project
+# |     + -- ...
+# | -- web                    app root
 # |     | -- index.html       default web page
-# |     | -- main.js          cocos2d boot
+# |     | -- main.js          default script
 # |     | -- manifest.json    android 'save to home screen'
 # |     | -- project.json     cocos2d manifest
 # |     | -- frameworks       cocos2d lib
 # |     | -- res              resources
-# |     + -- (src | packages) packages
+# |     + -- (src | packages) compiled lib target, respository pre-built
 # |           | -- {lib}
 # |           | -- example
-# |
-# | -- .bowerrc               define ./packages
+# |           + -- ...
+# | -- .bowerrc               define ./packages repository
 # | -- .gitignore             build, node_modules, tmp, packages
 # | -- bower.json             module name, packages
 # | -- gulpfile.js            this workflow
-# | -- gulpfile.json          gulpfile configuration
 # | -- jsconfig.json          javascript project config
 # | -- license.md
 # | -- package.json           node project info
 # | -- readme.md
-# + -- tsconfig.json
+# + -- tsconfig.json          typescript project file
 #
 # coffee -o .. -cb gulpfile.coffee
 #
 ###
 
+###
+ * load dependencies
+###
 fs          = require('fs')
 del         = require('del')
+path        = require('path')
 gulp        = require('gulp')
+bump        = require('gulp-bump')
 copy        = require('gulp-copy')
 gutil       = require('gulp-util')
-shell       = require('gulp-shell')
 coffee      = require('gulp-coffee')
 concat      = require('gulp-concat')
-uglify      = require('gulp-uglify')
 filter      = require('gulp-filter')
 rename      = require('gulp-rename')
+change      = require('gulp-change')
 flatten     = require('gulp-flatten')
 gh_pages    = require('gulp-gh-pages')
 manifest    = require('gulp-manifest')
@@ -77,41 +82,50 @@ bowerDeps   = require('gulp-bower-deps')
 maps        = require('gulp-sourcemaps')
 json        = require('gulp-json-editor')
 replace     = require('gulp-batch-replace')
-
+closure     = require('gulp-closure-compiler')
 ###
  * load project configuration
 ###
 project     = require('./package.json')
 bower       = require('./bower.json')
-config      = if fs.existsSync('./gulpfile.json') then require('./gulpfile.json') else false
+repository  = if fs.existsSync('./.bowerrc') then JSON.parse(fs.readFileSync('./.bowerrc', 'utf8')).directory else'packages'
+config      = if fs.existsSync('./tools/config.json') then require('./tools/config.json') else false
 jsconfig    = if fs.existsSync('./jsconfig.json') then require('./jsconfig.json') else false
 cocos2d     = if fs.existsSync('./web/project.json') then require('./web/project.json') else false
-repository  = if fs.existsSync('./.bowerrc') then JSON.parse(fs.readFileSync('./.bowerrc', 'utf8')).directory else'packages'
 packages    = if cocos2d then 'src' else 'packages'
 
-authorName = project.author
-libName = project.name
-version = project.version
+gulp.task 'build', ['_build']
+gulp.task 'dist', ['_dist']
+gulp.task 'serve', ['_serve']
+gulp.task 'test', ['_test']
+gulp.task 'get', ['_get']
+gulp.task 'publish', ['_publish']
+gulp.task 'deploy', ['_deploy']
+gulp.task 'default', ['help']
+gulp.task 'help', ->
+  console.log """
+    gulpfile:
 
-dependencies = do ->
-  dependencies =
-    directory: repository
-    deps: {}
-  for name, version of bower.dependencies
-    dependencies.deps[name] =
-      version: version
-      files: config.packages[name]
-  return dependencies
+    # build   - compile app to build/
+    # deploy  - deploy build/web/ to location
+    # get     - get dependencies from bower repository
+    # help    - display this message
+    # publish - publish build/web/ to gh-pages
+    # serve   - open build/web in browser
+    # test    - open web/ in browser with live reload
+
+    """
+
 
 ###
-task: build
-
-  create the outputs
-  create appcache manifest
-
+ * Task _build
+ *
+ * create the outputs
+ * bump the version number
+ * write the version source file
 ###
-gulp.task 'build', ['_output'], ->
-  gulp.src(['build/web/**/*.*'])
+gulp.task '_build', ['_version'], ->
+  return gulp.src(["#{config.build.dest}/web/**/*.*"])
   .pipe(manifest(
       hash: true
       timestamp: true
@@ -120,29 +134,28 @@ gulp.task 'build', ['_output'], ->
       filename: 'manifest.appcache'
       exclude: 'manifest.appcache'
     ))
-  .pipe(gulp.dest('build/web'))
+  .pipe(gulp.dest("#{config.build.dest}/web"))
 
 
 ###
-task: dist
+ * Dist
+ *
+ * bundle up the source code
+ * create a minified distribution
+###
+gulp.task '_dist', ['_bundle'], ->
+  return gulp.src("#{config.build.dest}/#{project.name}.min.js")
+    .pipe(closure(getClosureOptions()))
+    .pipe(gulp.dest("#{config.build.dest}/"))
 
-  create the dist
 
 ###
-gulp.task 'dist', ['_bundle'], ->
-  return gulp.src("build/#{libName}.min.js")
-    .pipe(uglify(mangle:false))
-    .pipe(gulp.dest("build/"))
-
-
+ * Serve
+ *
+ * serve the build folder
 ###
-task: serve
-
-  serve the build folder
-
-###
-gulp.task 'serve', ->
-  gulp.src('./build/web')
+gulp.task '_serve', ->
+  gulp.src("./#{config.build.dest}/web")
   .pipe webserver(
     livereload: false
     open: true
@@ -150,176 +163,168 @@ gulp.task 'serve', ->
   return
 
 ###
-task: test
-
-  serve the web folder
-
+ * Test
+ *
+ * serve the dev folder
 ###
-gulp.task 'test', ->
-  gulp.src('./web')
+gulp.task '_test', ->
+  gulp.src("./web")
   .pipe webserver(
     livereload: true
     open: true
   )
   return
 
-gulp.task 'help', ->
-  console.log """
-Gulp Tasks:
-
-build   - build lib sources to web/src/{{lib}}, copy to build/web
-deploy  - deploy to location
-dist    - create dist bundle
-get     - gets packages dependencies using bower
-help    - display this message
-publish - publish gh-pages
-serve   - open build\web\ in browser
-test    - open web\ in browser
-
-"""
-
 ###
-task: get
-
-  get dependencies
-
+ * Get
+ *
+ * get dependencies
+ * apply patches
 ###
-gulp.task 'get', ['_dependencies'], ->
+gulp.task '_get', ['_dependencies'], ->
 
   for dest, patch of config.patch
     for file, patch of patch
       "web/#{packages}/#{dest}/#{file}"
-      console.log 'patch', "web/#{packages}/#{dest}/#{file}"
       gulp.src("web/#{packages}/#{dest}/#{file}")
       .pipe(replace(patch))
       .pipe(gulp.dest("web/#{packages}/#{dest}"))
 
 
-
 ###
-task: publish
-
-  publish to github gh-pages
-
+ * Publish
+ *
+ * publish to github gh-pages
 ###
-gulp.task 'publish', ->
-  return gulp.src("./build/web/**/*.*")
+gulp.task '_publish', ->
+  return gulp.src("./#{config.build.dest}/web/**/*.*")
   .pipe(gh_pages())
 
 
 ###
-task: deploy
-
-  deploy build
-
+ * Deploy
+ *
+ * copy the build
 ###
-gulp.task 'deploy', ->
-  gulp.src([
-    "build/web/#{packages}/**/*.*"
-    "build/web/res/**/*.*"
-    "build/web/index.html"
-    ].concat(config.deploy.extra))
-    .pipe copy(config.deploy.path, prefix: config.deploy.skip)
+gulp.task '_deploy', ->
+  files = ("#{config.build.dest}/file" for file in config.build.files)
+  gulp.src(["#{config.build.dest}/web/#{packages}/**/*.*"].concat(files))
+    .pipe(copy(config.deploy.path, prefix: config.deploy.skip))
 
-gulp.task 'default', ['help']
+
 
 ### P R I V A T E  T A S K S ###
 ###
-task: clean
-
-  deletes all build files
-  
+ * Task _clean
+ *
+ * delete the build files
 ###
 gulp.task '_clean', (next) ->
-  del ['build'], next
+  del [config.build.dest], next
   return
 
 
-###
-task: res
+gulp.task '_version', ['_bump'], ->
 
-  copy the res files from
-  lib/res to web/res
-  
-###
-gulp.task '_res', ['_clean'], ->
-  return gulp.src([
-    "lib/res/**/*.*"
-  ]).pipe copy("web", prefix: 1)
-
-###
-task: output
-
-  create the outputs
-  copy lib/res to web
-  copies the web folder to the build folder
-  skip cocos2d runtime and tools
+  ### reload the project config ###
+  delete require.cache[path.resolve('./package.json')];
+  project = require('./package.json')
+  return gulp.src(config.version.path+'/'+config.version.source)
+    .pipe(change((content) ->
+      tmpl = fs.readFileSync(config.version.path+'/'+config.version.template, 'utf8')
+      return tmpl.replace("{{ #{config.version.key} }}", project.version)
+    ))
+    .pipe(gulp.dest(config.version.path))
 
 ###
-gulp.task '_output', ['_js','_res'], ->
-   return gulp.src([
-     "web/#{packages}/**/**/*.*"
-     "!web/#{packages}/#{libName}/**/*"
-     "web/res/**/*.*"
-     "web/index.html"
-     "web/license.md"
-     "web/main.js"
-     "web/manifest.json"
-     "web/readme.md"
-   ])
-   .pipe copy('build')
-
+ * Task _bump
+ *
+ * bump the version number
+###
+gulp.task '_bump', ['_cocos2d'], ->
+  return gulp.src('./package.json')
+  .pipe(bump())
+  .pipe(gulp.dest('./'))
 
 ###
-task: js
-
-  concat and minify all the js files
-
+ * Task _cocos2d
+ *
+ * fix the cocos2d project.json
 ###
-gulp.task '_js', ['_clean'], ->
-  # if this is a cocos2d project, use the project.json
-  if cocos2d
-    jsList = []
-    source = []
-    for name in cocos2d.jsList
-      if name.indexOf("src/#{libName}") is 0
-        source.push(name.replace("src/", "web/src/"))
-      else
-        jsList.push(name)
-    jsList.push("src/#{libName}/#{libName}.min.js")
+gulp.task '_cocos2d', ['_copy'], ->
 
-    gulp.src(source)
-    .pipe(concat("#{libName}.min.js"))
-    .pipe(uglify(mangle: false))
-    .pipe(gulp.dest("build/web/src/#{libName}"))
-
+  if cocos2d and config.build.compile
     return gulp.src("web/project.json")
-    .pipe(json((json) ->
-        json.jsList = jsList
-        json.showFPS = false
-        json.classReleaseMode = true
+      .pipe(json((json) ->
+        delete json["modules"]
+        delete json["jsList"]
         return json
-      ))
-    .pipe(gulp.dest("build/web"))
+      )).pipe(gulp.dest("#{config.build.dest}/web"))
 
-  else  # just wrap up all the files.
-    return gulp.src([
-      "web/#{packages}/#{libName}/**/*.*"
-      "!web/#{packages}/#{libName}/**/*.map"
-    ])
-    .pipe(concat("#{libName}.min.js"))
-    .pipe(uglify(mangle: false))
-    .pipe(gulp.dest("build/web/#{packages}/#{libName}"))
+###
+ * Task _copy
+ *
+ * create the outputs
+ * copy lib/res to web
+ * copies the web folder to the build folder
+###
+gulp.task '_copy', ['_compile','_resources'], ->
 
+  # start with misc files
+  source = (file for file in config.build.files)
+
+  if !config.build.compile
+    source = source.concat(config.build.sources)
+    # copy cocos2 framework and entry point
+    if cocos2d
+      source.push("web/#{cocos2d.engineDir}/**/**.*")
+      source.push("web/main.js")
+
+  return gulp.src(source).pipe(copy(config.build.dest))
 
 
 ###
-task: dependencies
+ * Task _res
+ * ensure the web/res folder
+###
+gulp.task '_resources', ['_clean'], ->
+  return gulp.src(config.build.resources).pipe(copy("web", prefix: 1))
 
-  copy the dependencies from the bower folder
 
+###
+ * Task _compile
+ * compile sources to build dest
+###
+gulp.task '_compile', ['_clean'], ->
+  if config.build.compile
+    if cocos2d
+      return gulp.src(getCocos2dFiles(true))
+      .pipe(closure(getClosureOptions()))
+      .pipe(gulp.dest("#{config.build.dest}/web"))
+    else
+      return gulp.src(config.build.sources)
+      .pipe(closure(getClosureOptions()))
+      .pipe(gulp.dest("#{config.build.dest}/web"))
+  else return null
+
+###
+ * Task _dependencies
+ * copy the dependencies from the repository
 ###
 gulp.task '_dependencies', ->
+
+  ###
+   * build the dependencies hash
+  ###
+  dependencies = do ->
+    dependencies =
+      directory: repository
+      deps: {}
+    for name, version of bower.dependencies
+      dependencies.deps[name] =
+        version: version
+        files: config.packages[name]
+    return dependencies
 
   gulp.src(bowerDeps(dependencies).deps)
   .pipe(flatten())
@@ -330,21 +335,75 @@ gulp.task '_dependencies', ->
   .pipe(gulp.dest("web/#{packages}/"))
 
 ###
-task: bundle
-
-  bundle up the javascript into 1 file
-
+* Task _bundle
+* bundle up the javascript into 1 file
 ###
 gulp.task '_bundle', ['_concat'], ->
-  return gulp.src("build/#{libName}.js")
-  .pipe(rename("#{libName}.min.js"))
-  .pipe(gulp.dest("build/"))
+  return gulp.src("build/#{project.name}.js")
+  .pipe(rename("#{project.name}.min.js"))
+  .pipe(gulp.dest(config.build.dest))
 
+###
+* Task _concat
+* bundle up the javascript into 1 file
+###
 gulp.task '_concat', ->
-  return gulp.src(jsconfig.files ? "web/#{packages}/#{libName}/**/*.js")
+  return gulp.src(jsconfig.files ? "web/#{packages}/#{project.name}/**/*.js")
   .pipe(maps.init())
-  .pipe(concat("#{libName}.js"))
+  .pipe(concat("#{project.name}.js"))
   .pipe(maps.write("."))
-  .pipe(gulp.dest("build/"))
+  .pipe(gulp.dest(config.build.dest))
 
 
+###
+ *
+ * Get Cocos2d Files
+ *
+ * get list of source files for cocos2d projects
+ *
+ * @param {boolean} standalone - include cocos2d libraries + main
+ * @return {Array<string>} list of file names
+###
+getCocos2dFiles = (standalone=false) ->
+
+  root = "./web/#{cocos2d.engineDir}"
+  if standalone # include the framework
+    moduleConfig = require("#{root}/moduleConfig.json")
+    files = ["#{root}/#{moduleConfig.bootFile}"]
+    for module in cocos2d.modules
+      for name, value of moduleConfig.module[module]
+        for file in moduleConfig.module[value]
+          files.push("#{root}/#{file}") unless moduleConfig.module[file]?
+  else files = []
+
+  for file in cocos2d.jsList
+    files.push("./web/#{file}")
+
+  files.push("./web/main.js")
+  return files
+
+###
+ *
+ * Get Closure Options
+ *
+ * prepares the options for closure compiler
+ *
+ * @param {string} level - compiler level
+ * @param {boolean} dbg - pretty print compiler output
+ * @return {!Object} compiler options
+###
+getClosureOptions = (level='minify', dbg=false) ->
+  options =
+    "compilerPath": "packages/closure-compiler/compiler.jar"
+    "fileName": "main.js"
+    "compilerFlags":
+      "compilation_level": switch level
+        when 'advanced' then "ADVANCED_OPTIMIZATIONS"
+        when 'simple' then "SIMPLE_OPTIMIZATIONS"
+        when 'minify' then "WHITESPACE_ONLY"
+
+      "warning_level": "QUIET"
+
+
+  options.compilerFlags.formatting = 'pretty_print' if dbg
+  return options

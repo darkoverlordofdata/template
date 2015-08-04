@@ -1,0 +1,58 @@
+{
+  "packages": {
+    "localstoragedb": "localstoragedb.js",
+    "jmatch3": "jmatch3.js",
+    "tween.ts": "build/tween.min.js",
+    "ash": "build/ash.js"
+  },
+  "version": {
+    "template": "build.ts.tpl",
+    "source": "build.ts",
+    "path": "./lib/src",
+    "key": "VERSION"
+  },
+  "build": {
+    "library": false,
+    "compile": true,
+    "dest": "build",
+    "sources": [
+      "web/src/**/*.*"
+    ],
+    "resources": [
+      "lib/res/**/*.*"
+    ],
+    "files": [
+      "web/res/**/*.*",
+      "web/index.html",
+      "web/license.md",
+      "web/readme.md"
+    ]
+  },
+  "deploy": {
+    "path": "web/frameworks/runtime-src/alienzone/web/src/main/assets/",
+    "skip": 2,
+    "extra": [
+      "build/web/res/**/*.*",
+      "build/web/index.html",
+      "build/web/license.md",
+      "build/web/main.js",
+      "build/web/project.json",
+      "build/web/readme.md"
+    ]
+  },
+  "patch": {
+    "tween": {
+      "tween.min.js": [["window.TWEEN=", "window['TWEEN']="]]
+    },
+
+    "jmatch3": {
+      "jmatch3.js": [
+        ["exports.jMatch3 =", "exports['jMatch3'] ="],
+        [
+          "Grid.directions = {\n        up: {\n            x: 0,\n            y: -1\n        },\n        down: {\n            x: 0,\n            y: 1\n        },\n        right: {\n            x: 1,\n            y: 0\n        },\n        left: {\n            x: -1,\n            y: 0\n        }\n    };",
+          "Grid.directions = {};\n    Grid.directions['up'] = {};\n    Grid.directions['up'].x = 0;\n    Grid.directions['up'].y = -1;\n    Grid.directions['down'] = {};\n    Grid.directions['down'].x = 0;\n    Grid.directions['down'].y = 1;\n    Grid.directions['right'] = {};\n    Grid.directions['right'].x = 1;\n    Grid.directions['right'].y = 0;\n    Grid.directions['left'] = {};\n    Grid.directions['left'].x = -1;\n    Grid.directions['left'].y = 0;"
+        ]
+      ]
+    }
+  }
+}

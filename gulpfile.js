@@ -16,74 +16,82 @@
 #
  * Tasks:
 #
- * build   - build lib sources to web/src/{{lib}}, copy to build/web
- * deploy  - deploy to location
- * dist    - create dist bundle
- * get     - gets packages dependencies using bower
+ * build   - compile app to build/
+ * deploy  - deploy build/web/ to location
+ * get     - get dependencies from bower repository
  * help    - display this message
- * publish - publish gh-pages
- * serve   - open build\web\ in browser
- * test    - open web\ in browser
+ * publish - publish build/web/ to gh-pages
+ * serve   - open build/web in browser
+ * test    - open web/ in browser with live reload
 #
- * project
- * | -- bin                    tools
- * | -- build                  output folder for zip
+ * | -- bin                    public tools
+ * | -- build                  compiled output
  * | -- example                example using the lib
- * | -- lib                    defines this packages
+ * | -- lib                    sources for this project
  * | -- node_modules           npm dependencies
- * | -- packages               bower external packages
+ * | -- packages               repository
  * | -- test                   unit tests
- * | -- tools                  other tools
- * | -- web                    source
+ * | -- tools                  private tools
+ * |     | -- config.json      this workflow config
+ * |     | -- gulpfile.coffee  this workflow source
+ * |     | -- server.js        superstatic configured to preview this project
+ * |     + -- ...
+ * | -- web                    app root
  * |     | -- index.html       default web page
- * |     | -- main.js          cocos2d boot
+ * |     | -- main.js          default script
  * |     | -- manifest.json    android 'save to home screen'
  * |     | -- project.json     cocos2d manifest
  * |     | -- frameworks       cocos2d lib
  * |     | -- res              resources
- * |     + -- (src | packages) packages
+ * |     + -- (src | packages) compiled lib target, respository pre-built
  * |           | -- {lib}
  * |           | -- example
- * |
- * | -- .bowerrc               define ./packages
+ * |           + -- ...
+ * | -- .bowerrc               define ./packages repository
  * | -- .gitignore             build, node_modules, tmp, packages
  * | -- bower.json             module name, packages
  * | -- gulpfile.js            this workflow
- * | -- gulpfile.json          gulpfile configuration
  * | -- jsconfig.json          javascript project config
  * | -- license.md
  * | -- package.json           node project info
  * | -- readme.md
- * + -- tsconfig.json
+ * + -- tsconfig.json          typescript project file
 #
  * coffee -o .. -cb gulpfile.coffee
 #
  */
 
+
+/*
+ * load dependencies
+ */
+
 (function() {
-  var authorName, bower, bowerDeps, cocos2d, coffee, concat, config, copy, del, dependencies, filter, flatten, fs, gh_pages, gulp, gutil, jsconfig, json, libName, manifest, maps, packages, project, rename, replace, repository, shell, uglify, version, webserver;
+  var bower, bowerDeps, bump, change, closure, cocos2d, coffee, concat, config, copy, del, filter, flatten, fs, getClosureOptions, getCocos2dFiles, gh_pages, gulp, gutil, jsconfig, json, manifest, maps, packages, path, project, rename, replace, repository, webserver;
 
   fs = require('fs');
 
   del = require('del');
 
+  path = require('path');
+
   gulp = require('gulp');
+
+  bump = require('gulp-bump');
 
   copy = require('gulp-copy');
 
   gutil = require('gulp-util');
 
-  shell = require('gulp-shell');
-
   coffee = require('gulp-coffee');
 
   concat = require('gulp-concat');
 
-  uglify = require('gulp-uglify');
-
   filter = require('gulp-filter');
 
   rename = require('gulp-rename');
+
+  change = require('gulp-change');
 
   flatten = require('gulp-flatten');
 
@@ -101,6 +109,8 @@
 
   replace = require('gulp-batch-replace');
 
+  closure = require('gulp-closure-compiler');
+
 
   /*
    * load project configuration
@@ -110,80 +120,77 @@
 
   bower = require('./bower.json');
 
-  config = fs.existsSync('./gulpfile.json') ? require('./gulpfile.json') : false;
+  repository = fs.existsSync('./.bowerrc') ? JSON.parse(fs.readFileSync('./.bowerrc', 'utf8')).directory : 'packages';
+
+  config = fs.existsSync('./tools/config.json') ? require('./tools/config.json') : false;
 
   jsconfig = fs.existsSync('./jsconfig.json') ? require('./jsconfig.json') : false;
 
   cocos2d = fs.existsSync('./web/project.json') ? require('./web/project.json') : false;
 
-  repository = fs.existsSync('./.bowerrc') ? JSON.parse(fs.readFileSync('./.bowerrc', 'utf8')).directory : 'packages';
-
   packages = cocos2d ? 'src' : 'packages';
 
-  authorName = project.author;
+  gulp.task('build', ['_build']);
 
-  libName = project.name;
+  gulp.task('dist', ['_dist']);
 
-  version = project.version;
+  gulp.task('serve', ['_serve']);
 
-  dependencies = (function() {
-    var name, ref;
-    dependencies = {
-      directory: repository,
-      deps: {}
-    };
-    ref = bower.dependencies;
-    for (name in ref) {
-      version = ref[name];
-      dependencies.deps[name] = {
-        version: version,
-        files: config.packages[name]
-      };
-    }
-    return dependencies;
-  })();
+  gulp.task('test', ['_test']);
+
+  gulp.task('get', ['_get']);
+
+  gulp.task('publish', ['_publish']);
+
+  gulp.task('deploy', ['_deploy']);
+
+  gulp.task('default', ['help']);
+
+  gulp.task('help', function() {
+    return console.log("gulpfile:\n\n# build   - compile app to build/\n# deploy  - deploy build/web/ to location\n# get     - get dependencies from bower repository\n# help    - display this message\n# publish - publish build/web/ to gh-pages\n# serve   - open build/web in browser\n# test    - open web/ in browser with live reload\n");
+  });
 
 
   /*
-  task: build
-  
-    create the outputs
-    create appcache manifest
+   * Task _build
+   *
+   * create the outputs
+   * bump the version number
+   * write the version source file
    */
 
-  gulp.task('build', ['_output'], function() {
-    return gulp.src(['build/web/**/*.*']).pipe(manifest({
+  gulp.task('_build', ['_version'], function() {
+    return gulp.src([config.build.dest + "/web/**/*.*"]).pipe(manifest({
       hash: true,
       timestamp: true,
       preferOnline: false,
       network: ['*'],
       filename: 'manifest.appcache',
       exclude: 'manifest.appcache'
-    })).pipe(gulp.dest('build/web'));
+    })).pipe(gulp.dest(config.build.dest + "/web"));
   });
 
 
   /*
-  task: dist
-  
-    create the dist
+   * Dist
+   *
+   * bundle up the source code
+   * create a minified distribution
    */
 
-  gulp.task('dist', ['_bundle'], function() {
-    return gulp.src("build/" + libName + ".min.js").pipe(uglify({
-      mangle: false
-    })).pipe(gulp.dest("build/"));
+  gulp.task('_dist', ['_bundle'], function() {
+    return gulp.src(config.build.dest + "/" + project.name + ".min.js").pipe(closure(getClosureOptions())).pipe(gulp.dest(config.build.dest + "/"));
   });
 
 
   /*
-  task: serve
-  
-    serve the build folder
+   * Serve
+   *
+   * serve the build folder
    */
 
-  gulp.task('serve', function() {
-    gulp.src('./build/web').pipe(webserver({
+  gulp.task('_serve', function() {
+    gulp.src("./" + config.build.dest + "/web").pipe(webserver({
       livereload: false,
       open: true
     }));
@@ -191,30 +198,27 @@
 
 
   /*
-  task: test
-  
-    serve the web folder
+   * Test
+   *
+   * serve the dev folder
    */
 
-  gulp.task('test', function() {
-    gulp.src('./web').pipe(webserver({
+  gulp.task('_test', function() {
+    gulp.src("./web").pipe(webserver({
       livereload: true,
       open: true
     }));
   });
 
-  gulp.task('help', function() {
-    return console.log("Gulp Tasks:\n\nbuild   - build lib sources to web/src/{{lib}}, copy to build/web\ndeploy  - deploy to location\ndist    - create dist bundle\nget     - gets packages dependencies using bower\nhelp    - display this message\npublish - publish gh-pages\nserve   - open build\web\ in browser\ntest    - open web\ in browser\n");
-  });
-
 
   /*
-  task: get
-  
-    get dependencies
+   * Get
+   *
+   * get dependencies
+   * apply patches
    */
 
-  gulp.task('get', ['_dependencies'], function() {
+  gulp.task('_get', ['_dependencies'], function() {
     var dest, file, patch, ref, results;
     ref = config.patch;
     results = [];
@@ -226,7 +230,6 @@
         for (file in patch) {
           patch = patch[file];
           "web/" + packages + "/" + dest + "/" + file;
-          console.log('patch', "web/" + packages + "/" + dest + "/" + file);
           results1.push(gulp.src("web/" + packages + "/" + dest + "/" + file).pipe(replace(patch)).pipe(gulp.dest("web/" + packages + "/" + dest)));
         }
         return results1;
@@ -237,118 +240,182 @@
 
 
   /*
-  task: publish
-  
-    publish to github gh-pages
+   * Publish
+   *
+   * publish to github gh-pages
    */
 
-  gulp.task('publish', function() {
-    return gulp.src("./build/web/**/*.*").pipe(gh_pages());
+  gulp.task('_publish', function() {
+    return gulp.src("./" + config.build.dest + "/web/**/*.*").pipe(gh_pages());
   });
 
 
   /*
-  task: deploy
-  
-    deploy build
+   * Deploy
+   *
+   * copy the build
    */
 
-  gulp.task('deploy', function() {
-    return gulp.src(["build/web/" + packages + "/**/*.*", "build/web/res/**/*.*", "build/web/index.html"].concat(config.deploy.extra)).pipe(copy(config.deploy.path, {
+  gulp.task('_deploy', function() {
+    var file, files;
+    files = (function() {
+      var i, len, ref, results;
+      ref = config.build.files;
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        file = ref[i];
+        results.push(config.build.dest + "/file");
+      }
+      return results;
+    })();
+    return gulp.src([config.build.dest + "/web/" + packages + "/**/*.*"].concat(files)).pipe(copy(config.deploy.path, {
       prefix: config.deploy.skip
     }));
   });
-
-  gulp.task('default', ['help']);
 
 
   /* P R I V A T E  T A S K S */
 
 
   /*
-  task: clean
-  
-    deletes all build files
+   * Task _clean
+   *
+   * delete the build files
    */
 
   gulp.task('_clean', function(next) {
-    del(['build'], next);
+    del([config.build.dest], next);
+  });
+
+  gulp.task('_version', ['_bump'], function() {
+
+    /* reload the project config */
+    delete require.cache[path.resolve('./package.json')];
+    project = require('./package.json');
+    return gulp.src(config.version.path + '/' + config.version.source).pipe(change(function(content) {
+      var tmpl;
+      tmpl = fs.readFileSync(config.version.path + '/' + config.version.template, 'utf8');
+      return tmpl.replace("{{ " + config.version.key + " }}", project.version);
+    })).pipe(gulp.dest(config.version.path));
   });
 
 
   /*
-  task: res
-  
-    copy the res files from
-    lib/res to web/res
+   * Task _bump
+   *
+   * bump the version number
    */
 
-  gulp.task('_res', ['_clean'], function() {
-    return gulp.src(["lib/res/**/*.*"]).pipe(copy("web", {
+  gulp.task('_bump', ['_cocos2d'], function() {
+    return gulp.src('./package.json').pipe(bump()).pipe(gulp.dest('./'));
+  });
+
+
+  /*
+   * Task _cocos2d
+   *
+   * fix the cocos2d project.json
+   */
+
+  gulp.task('_cocos2d', ['_copy'], function() {
+    if (cocos2d && config.build.compile) {
+      return gulp.src("web/project.json").pipe(json(function(json) {
+        delete json["modules"];
+        delete json["jsList"];
+        return json;
+      })).pipe(gulp.dest(config.build.dest + "/web"));
+    }
+  });
+
+
+  /*
+   * Task _copy
+   *
+   * create the outputs
+   * copy lib/res to web
+   * copies the web folder to the build folder
+   */
+
+  gulp.task('_copy', ['_compile', '_resources'], function() {
+    var file, source;
+    source = (function() {
+      var i, len, ref, results;
+      ref = config.build.files;
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        file = ref[i];
+        results.push(file);
+      }
+      return results;
+    })();
+    if (!config.build.compile) {
+      source = source.concat(config.build.sources);
+      if (cocos2d) {
+        source.push("web/" + cocos2d.engineDir + "/**/**.*");
+        source.push("web/main.js");
+      }
+    }
+    return gulp.src(source).pipe(copy(config.build.dest));
+  });
+
+
+  /*
+   * Task _res
+   * ensure the web/res folder
+   */
+
+  gulp.task('_resources', ['_clean'], function() {
+    return gulp.src(config.build.resources).pipe(copy("web", {
       prefix: 1
     }));
   });
 
 
   /*
-  task: output
-  
-    create the outputs
-    copy lib/res to web
-    copies the web folder to the build folder
-    skip cocos2d runtime and tools
+   * Task _compile
+   * compile sources to build dest
    */
 
-  gulp.task('_output', ['_js', '_res'], function() {
-    return gulp.src(["web/" + packages + "/**/**/*.*", "!web/" + packages + "/" + libName + "/**/*", "web/res/**/*.*", "web/index.html", "web/license.md", "web/main.js", "web/manifest.json", "web/readme.md"]).pipe(copy('build'));
-  });
-
-
-  /*
-  task: js
-  
-    concat and minify all the js files
-   */
-
-  gulp.task('_js', ['_clean'], function() {
-    var i, jsList, len, name, ref, source;
-    if (cocos2d) {
-      jsList = [];
-      source = [];
-      ref = cocos2d.jsList;
-      for (i = 0, len = ref.length; i < len; i++) {
-        name = ref[i];
-        if (name.indexOf("src/" + libName) === 0) {
-          source.push(name.replace("src/", "web/src/"));
-        } else {
-          jsList.push(name);
-        }
+  gulp.task('_compile', ['_clean'], function() {
+    if (config.build.compile) {
+      if (cocos2d) {
+        return gulp.src(getCocos2dFiles(true)).pipe(closure(getClosureOptions())).pipe(gulp.dest(config.build.dest + "/web"));
+      } else {
+        return gulp.src(config.build.sources).pipe(closure(getClosureOptions())).pipe(gulp.dest(config.build.dest + "/web"));
       }
-      jsList.push("src/" + libName + "/" + libName + ".min.js");
-      gulp.src(source).pipe(concat(libName + ".min.js")).pipe(uglify({
-        mangle: false
-      })).pipe(gulp.dest("build/web/src/" + libName));
-      return gulp.src("web/project.json").pipe(json(function(json) {
-        json.jsList = jsList;
-        json.showFPS = false;
-        json.classReleaseMode = true;
-        return json;
-      })).pipe(gulp.dest("build/web"));
     } else {
-      return gulp.src(["web/" + packages + "/" + libName + "/**/*.*", "!web/" + packages + "/" + libName + "/**/*.map"]).pipe(concat(libName + ".min.js")).pipe(uglify({
-        mangle: false
-      })).pipe(gulp.dest("build/web/" + packages + "/" + libName));
+      return null;
     }
   });
 
 
   /*
-  task: dependencies
-  
-    copy the dependencies from the bower folder
+   * Task _dependencies
+   * copy the dependencies from the repository
    */
 
   gulp.task('_dependencies', function() {
+
+    /*
+     * build the dependencies hash
+     */
+    var dependencies;
+    dependencies = (function() {
+      var name, ref, version;
+      dependencies = {
+        directory: repository,
+        deps: {}
+      };
+      ref = bower.dependencies;
+      for (name in ref) {
+        version = ref[name];
+        dependencies.deps[name] = {
+          version: version,
+          files: config.packages[name]
+        };
+      }
+      return dependencies;
+    })();
     return gulp.src(bowerDeps(dependencies).deps).pipe(flatten()).pipe(rename(function(path) {
       path.dirname += '/' + path.basename.split('.')[0];
     })).pipe(gulp.dest("web/" + packages + "/"));
@@ -356,18 +423,113 @@
 
 
   /*
-  task: bundle
-  
-    bundle up the javascript into 1 file
+  * Task _bundle
+  * bundle up the javascript into 1 file
    */
 
   gulp.task('_bundle', ['_concat'], function() {
-    return gulp.src("build/" + libName + ".js").pipe(rename(libName + ".min.js")).pipe(gulp.dest("build/"));
+    return gulp.src("build/" + project.name + ".js").pipe(rename(project.name + ".min.js")).pipe(gulp.dest(config.build.dest));
   });
+
+
+  /*
+  * Task _concat
+  * bundle up the javascript into 1 file
+   */
 
   gulp.task('_concat', function() {
     var ref;
-    return gulp.src((ref = jsconfig.files) != null ? ref : "web/" + packages + "/" + libName + "/**/*.js").pipe(maps.init()).pipe(concat(libName + ".js")).pipe(maps.write(".")).pipe(gulp.dest("build/"));
+    return gulp.src((ref = jsconfig.files) != null ? ref : "web/" + packages + "/" + project.name + "/**/*.js").pipe(maps.init()).pipe(concat(project.name + ".js")).pipe(maps.write(".")).pipe(gulp.dest(config.build.dest));
   });
+
+
+  /*
+   *
+   * Get Cocos2d Files
+   *
+   * get list of source files for cocos2d projects
+   *
+   * @param {boolean} standalone - include cocos2d libraries + main
+   * @return {Array<string>} list of file names
+   */
+
+  getCocos2dFiles = function(standalone) {
+    var file, files, i, j, k, len, len1, len2, module, moduleConfig, name, ref, ref1, ref2, ref3, root, value;
+    if (standalone == null) {
+      standalone = false;
+    }
+    root = "./web/" + cocos2d.engineDir;
+    if (standalone) {
+      moduleConfig = require(root + "/moduleConfig.json");
+      files = [root + "/" + moduleConfig.bootFile];
+      ref = cocos2d.modules;
+      for (i = 0, len = ref.length; i < len; i++) {
+        module = ref[i];
+        ref1 = moduleConfig.module[module];
+        for (name in ref1) {
+          value = ref1[name];
+          ref2 = moduleConfig.module[value];
+          for (j = 0, len1 = ref2.length; j < len1; j++) {
+            file = ref2[j];
+            if (moduleConfig.module[file] == null) {
+              files.push(root + "/" + file);
+            }
+          }
+        }
+      }
+    } else {
+      files = [];
+    }
+    ref3 = cocos2d.jsList;
+    for (k = 0, len2 = ref3.length; k < len2; k++) {
+      file = ref3[k];
+      files.push("./web/" + file);
+    }
+    files.push("./web/main.js");
+    return files;
+  };
+
+
+  /*
+   *
+   * Get Closure Options
+   *
+   * prepares the options for closure compiler
+   *
+   * @param {string} level - compiler level
+   * @param {boolean} dbg - pretty print compiler output
+   * @return {!Object} compiler options
+   */
+
+  getClosureOptions = function(level, dbg) {
+    var options;
+    if (level == null) {
+      level = 'minify';
+    }
+    if (dbg == null) {
+      dbg = false;
+    }
+    options = {
+      "compilerPath": "packages/closure-compiler/compiler.jar",
+      "fileName": "main.js",
+      "compilerFlags": {
+        "compilation_level": (function() {
+          switch (level) {
+            case 'advanced':
+              return "ADVANCED_OPTIMIZATIONS";
+            case 'simple':
+              return "SIMPLE_OPTIMIZATIONS";
+            case 'minify':
+              return "WHITESPACE_ONLY";
+          }
+        })(),
+        "warning_level": "QUIET"
+      }
+    };
+    if (dbg) {
+      options.compilerFlags.formatting = 'pretty_print';
+    }
+    return options;
+  };
 
 }).call(this);
