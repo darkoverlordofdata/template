@@ -59,7 +59,12 @@ supports WebStorm and VS Code
       coffee -o .. -cb gulpfile.coffee
      
     
+# Usage
 
+git clone git@github.com:darkoverlordofdata/template.git myproject
+cd myproject
+npm install
+bower install
 
 
 pick a license:
