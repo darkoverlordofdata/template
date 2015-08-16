@@ -14,12 +14,12 @@
                 "$jshint"
             ]
         },{
-            "taskName": "version",
+            "taskName": "build",
             "args": [],
             "isBuildCommand": false,
             "problemMatcher": []
         },{
-            "taskName": "build",
+            "taskName": "deploy",
             "args": [],
             "isBuildCommand": false,
             "problemMatcher": []
@@ -30,11 +30,6 @@
             "problemMatcher": []
         },{
             "taskName": "publish",
-            "args": [],
-            "isBuildCommand": false,
-            "problemMatcher": []
-        },{
-            "taskName": "deploy",
             "args": [],
             "isBuildCommand": false,
             "problemMatcher": []
