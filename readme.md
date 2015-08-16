@@ -26,37 +26,27 @@ supports WebStorm and VS Code
       | -- bin                    public tools
       | -- build                  compiled output
       | -- example                example using the lib
-      | -- lib                    sources for this project
+      | -- lib                    sources for this project - library or application
       | -- node_modules           npm dependencies
-      | -- packages               repository
+      | -- packages               local repository
       | -- test                   unit tests
       | -- tools                  private tools
-      |     | -- config.json      this workflow config
-      |     | -- gulpfile.coffee  this workflow source
-      |     | -- server.js        superstatic configured to preview this project
-      |     + -- ...
-      | -- web                    app root
+      | -- web                    application root. For library, this uses example
       |     | -- index.html       default web page
-      |     | -- main.js          default script
-      |     | -- manifest.json    android 'save to home screen'
-      |     | -- project.json     cocos2d manifest
-      |     | -- frameworks       cocos2d lib
-      |     | -- res              resources
+      |     | -- main.js          optional cocos2d default script
+      |     | -- project.json     optional cocos2d manifest
+      |     | -- frameworks       optional cocos2d lib
+      |     | -- res              optional cocos2d resources
       |     + -- (src | packages) compiled lib target, respository pre-built
       |           | -- {lib}
       |           | -- example
       |           + -- ...
-      | -- .bowerrc               define ./packages repository
-      | -- .gitignore             build, node_modules, tmp, packages
+      | -- .bowerrc               defines ./packages repository
       | -- bower.json             module name, packages
-      | -- gulpfile.js            this workflow
-      | -- jsconfig.json          javascript project config
-      | -- license.md
+      | -- Cakefile               this workflow
       | -- package.json           node project info
-      | -- readme.md
-      + -- tsconfig.json          typescript project file
-     
-      coffee -o .. -cb gulpfile.coffee
+      + -- tsconfig.json          optional typescript project file
+
      
     
 # Usage

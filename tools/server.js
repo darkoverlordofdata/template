@@ -1,26 +1,14 @@
-/**
- * Run a static server
- *
- * configured in .settings/launch.json
- *
- */
-var server = require('superstatic').server;
-var open = require('open');
-var path = require('path');
+var gulp = require('gulp');
+var server = require('gulp-webserver');
+var logger = require('morgan');
+var path = process.argv[2] ? process.argv[2] : 'web';
 
-var options = {
-	port: 3474,
+gulp.src('./')
+.pipe(server({
 	host: 'localhost',
-	config: {
-		root: './web',
-		routes: {
-			'/': 'index.html'
-		}
-	},
-	cwd: path.resolve(__dirname, '..'),
-	debug: false	
-};
-
-server(options).listen(function(err) {
-	open('http://localhost:3474');
-});
+	port: 0xd16a,
+	livereload: true,
+	directoryListing: false,
+	open: "http://localhost:53610/"+path,
+	middleware: logger('dev')
+}));

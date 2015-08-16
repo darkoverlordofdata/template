@@ -9,19 +9,22 @@
   "private": true,
   "ignore": [
     "**/.*",
-    "gulpfile.js",
-    "jsconfig.json",
-    "tsconfig.json",
+    "tmp",
     "build",
-    "example",
     "node_modules",
     "packages",
+    "src",
     "test",
-    "tools",
-    "web/packages"
+    "tests"
   ],
   "devDependencies": {
     "closure-compiler": "http://dl.google.com/closure-compiler/compiler-latest.zip"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "install": {
+    "ignore": ["closure-compiler"],
+    "path": "web/src",
+    "sources": {
+    }
+  }
 }
