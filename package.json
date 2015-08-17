@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "{{ description }}",
   "main": "index.js",
+  "config": {
+    "build": []
+  },
   "scripts": {
     "_vscode_build": "",
     "android": "",
@@ -32,7 +35,8 @@
   "author": "{{ author }}",
   "license": "MIT",
   "directories": {
-    "lib": "./lib"
+    "lib": "./lib",
+    "example": "./example"
   },
   "devDependencies": {
     "coffee-script": "^1.9.0",

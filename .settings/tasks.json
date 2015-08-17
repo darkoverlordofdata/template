@@ -19,17 +19,32 @@
             "isBuildCommand": false,
             "problemMatcher": []
         },{
+            "taskName": "clean",
+            "args": [],
+            "isBuildCommand": false,
+            "problemMatcher": []
+        },{
+            "taskName": "closurebuild",
+            "args": [],
+            "isBuildCommand": false,
+            "problemMatcher": []
+        },{
+            "taskName": "config",
+            "args": [],
+            "isBuildCommand": false,
+            "problemMatcher": []
+        },{
             "taskName": "deploy",
             "args": [],
             "isBuildCommand": false,
             "problemMatcher": []
         },{
-            "taskName": "get",
+            "taskName": "jsdoc",
             "args": [],
             "isBuildCommand": false,
             "problemMatcher": []
         },{
-            "taskName": "publish",
+            "taskName": "manifest",
             "args": [],
             "isBuildCommand": false,
             "problemMatcher": []
@@ -40,11 +55,6 @@
             "problemMatcher": []
         },{
             "taskName": "test",
-            "args": [],
-            "isBuildCommand": false,
-            "problemMatcher": []
-        },{
-            "taskName": "make:build",
             "args": [],
             "isBuildCommand": false,
             "problemMatcher": []

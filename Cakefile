@@ -58,7 +58,7 @@
 
 fs = require('fs')
 
-# projectTypes enum:
+ # projectTypes enum:
 JavaScript    = 0   # javascript
 TypeScript    = 1   # typescript
 CoffeeScript  = 2   # coffeescript
@@ -95,7 +95,9 @@ task 'config', 'setup cake config', (options) ->
         when CoffeeScript then "coffee -o web/src/#{project.name} -wcm lib "
 
     ###
+    # Android
     # Build the android asset folder
+    #
     ###
     android: do ->
       options.compile ?= 'WHITESPACE_ONLY'
@@ -120,26 +122,19 @@ task 'config', 'setup cake config', (options) ->
         return ''
 
     ###
+    # Build
     # build the project
     #
-    # * Cocos2d?
-    #   * Compiled?
-    # * CoffeeScript
-    # * Typescript?
     ###
     build: do ->
       options.compile ?= 'ADVANCED_OPTIMIZATIONS'
 
       if isCocos2d
+        ###
+        # Use cocos2d project.json to build the target
+        ###
         files = getCocos2dFiles(true).join(' LF ')
-        step1 = """
-          cp -f lib/src/cclib-rt.js web/src/alienzone/cclib-rt.js
-          cp -f web/index.html build/web/index.html
-          cp -f web/main.js build/web/main.js
-          cp -f web/project.json build/web/project.json
-          cp -f web/manifest.json build/web/manifest.json
-          """.split('\n').join(' && ')
-
+        step1 = package.config.build.join(' && ')
         if options.compile?
           step2 = "cat #{files} | java -jar packages/closure-compiler/lib/vendor/compiler.jar --jscomp_error=checkTypes --warning_level=QUIET --compilation_level #{options.compile} --js_output_file build/web/main.js"
         else
@@ -148,45 +143,40 @@ task 'config', 'setup cake config', (options) ->
             mkdir build/web/frameworks
             cp -fr web/frameworks/cocos2d-html5 build/web/frameworks/cocos2d-html5
             """.split('\n').join(' && ')
-
         return "#{step1} && #{step2}"
+        
+      
       else if projectType is CoffeeScript
-        step1 = """
-          cp -rf lib build
-          cp -rf web/src build/web/src
-          cp -f lib/ash.d.ts build/ash.d.ts
-          cp -f web/example.html build/web/example.html
-          cp -f web/favicon.png build/web/favicon.png
-          cp -f web/example_build.html build/web/index.html
-          cp -f web/main.js build/web/main.js
-          """.split('\n').join(' && ')
-
+        ###
+        # Build after recompiling all coffeescript together
+        ###
+        step1 = package.config.build.join(' && ')
         files = require('./csconfig.json').files.join(" LF ")
         step2 = "cat #{files} | coffee -cs > build/#{project.name}.js"
-        step3 = "cat #{files} | coffee -cs | java -jar tools/compiler.jar --compilation_level WHITESPACE_ONLY --js_output_file build/#{project.name}.min.js"
-
+        step3 = "cat #{files} | coffee -cs | java -jar tools/compiler.jar --compilation_level #{options.compile} --js_output_file build/#{project.name}.min.js"
         return "#{step1} && #{step2} && #{step3}"
+        
       else
-        step1 = """
-          cp -rf lib build
-          cp -rf web/src build/web/src
-          cp -f web/example.html build/web/example.html
-          cp -f web/favicon.png build/web/favicon.png
-          cp -f web/example_build.html build/web/index.html
-          cp -f web/main.js build/web/main.js
-          """.split('\n').join(' && ')
-
+        ###
+        # Build directly from the raw transpiled javascript
+        ###
+        step1 = package.config.build.join(' && ')
         files = require('./jsconfig.json').files.join(" LF ")
         step2 = "cat #{files} > build/#{project.name}.js"
-        step3 = "cat #{files} | java -jar tools/compiler.jar --compilation_level WHITESPACE_ONLY --js_output_file build/#{project.name}.min.js"
+        step3 = "cat #{files} | java -jar tools/compiler.jar --compilation_level #{options.compile} --js_output_file build/#{project.name}.min.js"
+        return "#{step1} && #{step2} && #{step3}"
         
     ###
+    # Clean
     # delete the prior build items
+    #
     ###
     clean: "rm -rf build/*"
 
     ###
+    # Closure Build
     # build using the closure-compiler
+    #
     ###
     closurebuild: """
       python  packages/google-closure-library/closure/bin/build/closurebuilder.py \
@@ -206,12 +196,16 @@ task 'config', 'setup cake config', (options) ->
     """
 
     ###
+    # Config
     # run this config task
+    #
     ###
     config: "cake config"
 
     ###
+    # Deploy
     # copy the output to downstream project
+    #
     ###
     deploy: """
       cp -rf web/res web/frameworks/runtime-src/proj.android-studio/app/assets
@@ -221,7 +215,9 @@ task 'config', 'setup cake config', (options) ->
     """
 
     ###
+    # Deps Writer
     # collect dependencies for closure compiler
+    #
     ###
     depswriter: """
       python packages/google-closure-library/closure/bin/build/depswriter.py \
@@ -232,7 +228,9 @@ task 'config', 'setup cake config', (options) ->
     """
 
     ###
+    # Folder
     # ensure the folder structure
+    #
     ###
     folder: """
       mkdir build/web
@@ -242,17 +240,23 @@ task 'config', 'setup cake config', (options) ->
     """
 
     ###
+    # Get
     # process bower dependencies
+    #
     ###
     get: "bower-installer cake get"
 
     ###
+    # Publish
     # publish gh-pages
+    #
     ###
     publish: "gulp gh-pages"
 
     ###
+    # JsDoc
     # create documentation
+    #
     ###
     jsdoc: """
       jsdoc goog/lib -r \
@@ -263,22 +267,30 @@ task 'config', 'setup cake config', (options) ->
     """
 
     ###
+    # Manifest
     # create appcache manifest for build
+    #
     ###
     manifest: "gulp manifest"
 
     ###
+    # Post Build
     # update the cocos2d project file?
+    #
     ###
     postbuild: "cp -f web/project_build.json build/web/project.json"
 
     ###
+    # Post Install
     # get the dependencies
+    #
     ###
     postinstall: "bower install  npm run get"
 
     ###
+    # Pre Android
     # prepare for android build
+    #
     ###
     preandroid: """
       npm run predeploy
@@ -288,7 +300,9 @@ task 'config', 'setup cake config', (options) ->
     """
 
     ###
+    # Pre Build
     # prepare for build
+    #
     ###
     prebuild: """
       npm run clean -s
@@ -298,12 +312,16 @@ task 'config', 'setup cake config', (options) ->
     """
 
     ###
+    # Pre Closure Build
     # convert output for closure
+    #
     ###
     preclosurebuild: "coffee tools/convert.coffee"
 
     ###
+    # Pre Deploy
     # remove prior deployment
+    #
     ###
     predeploy: """
       rm -rf web/frameworks/runtime-src/proj.android-studio/app/assets/res
@@ -313,27 +331,36 @@ task 'config', 'setup cake config', (options) ->
     """
 
     ###
+    # Resources
     # copy the resources
+    #
     ###
     resources: "cp -rf lib/res web/res"
 
     ###
+    # Sart
     # run the dev version of the app
+    #
     ###
     start: "node ./tools/server.js web"
 
     ###
+    # Serve
     # run the build version of the app
+    #
     ###
     serve: "node ./tools/server.js build/web"
 
     ###
+    # Test
     # run the unit tests
+    #
     ###
     test: "NODE_ENV=test mocha --reporter nyan"
 
     ###
-    # transpile
+    # Transpile
+    #
     ###
     transpile: do ->
       switch projectType
