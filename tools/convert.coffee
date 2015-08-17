@@ -137,17 +137,6 @@ convert = (name, root=name, section=name, next) ->
 				fs.writeFileSync(file.replace("web/src/#{name}", "./goog/#{root}"), src)
 	
 	
-		#
-		# write new prolog
-		#
-		alt = name.replace('example', 'asteroids')
-		out = ["goog.provide('#{alt}');"]
-		for dep in deps
-			unless dep is 'example.Index'
-				alt = dep.replace('example', 'asteroids')
-				out.push("goog.require('#{alt}');")
-		out.push("new asteroids.Main();") unless next?
-		fs.writeFileSync("goog/#{root}/index.js", out.join('\n'))
 		next?()
 
 convert 'ash', 'lib', 'files', -> convert 'example' # bwa-ha-ha-ha

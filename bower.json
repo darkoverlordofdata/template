@@ -18,11 +18,12 @@
     "tests"
   ],
   "devDependencies": {
-    "closure-compiler": "http://dl.google.com/closure-compiler/compiler-latest.zip"
+    "closure-compiler": "~0.2.7",
+    "google-closure-library": "*"
   },
   "dependencies": {},
   "install": {
-    "ignore": ["closure-compiler"],
+    "ignore": ["closure-compiler", "google-closure-library"],
     "path": "web/src",
     "sources": {
     }

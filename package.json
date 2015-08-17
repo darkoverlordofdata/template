@@ -13,6 +13,7 @@
     "config":"cake prebuild:make",
     "convert": "coffee tools/convert.coffee",
     "deploy": "cp -rf web/res web/frameworks/runtime-src/proj.android-studio/app/assets && cp -f web/main.js web/frameworks/runtime-src/proj.android-studio/app/assets && cp -f web/project.json web/frameworks/runtime-src/proj.android-studio/app/assets && cp -rf web/src web/frameworks/runtime-src/proj.android-studio/app/assets",
+    "depswriter":"python packages/google-closure-library/closure/bin/build/depswriter.py --root_with_prefix='goog/example ../../../../goog/example' --root_with_prefix='goog/lib ../../../../goog/lib' --root_with_prefix='web ../../../../web' > web/template.dep.js",
     "folders": "mkdir build/web && mkdir build/lib && cp -fr lib/src build/lib && cp -fr web/res build/web",
     "get": "bower-installer && cake get:patch",
     "jsdoc": "jsdoc goog/lib -r --template ../jaguarjs-jsdoc --configure ./conf.json --readme ./readme.md --destination ./build/web",
