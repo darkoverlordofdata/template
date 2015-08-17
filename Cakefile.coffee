@@ -12,16 +12,10 @@
 #|
 #+--------------------------------------------------------------------+
 #
-# Tasks:
-#
-# build   - compile app to build/
-# deploy  - deploy build/web/ to location
-# get     - get dependencies from bower repository
-# help    - display this message
-# publish - publish build/web/ to gh-pages
-# serve   - open build/web in browser
-# test    - open web/ in browser with live reload
-#
+# | -- .settings              for vscode
+# |     | -- launch.json      F5 to run
+# |     | -- settings.json    ide preferences
+# |     + -- tasks.json       npm script runner
 # | -- bin                    public tools
 # | -- build                  compiled output
 # | -- example                example using the lib
@@ -30,21 +24,34 @@
 # | -- packages               local repository
 # | -- test                   unit tests
 # | -- tools                  private tools
+# |     | -- compiler.jar     closure compiler
+# |     | -- convert.coffee   coffee2closure script
+# |     | -- diff.coffee      diff_match_patch script
+# |     + -- server.js        for F5 in vscode
 # | -- web                    application root. For library, this uses example
 # |     | -- index.html       default web page
-# |     | -- main.js          optional cocos2d default script
-# |     | -- project.json     optional cocos2d manifest
-# |     | -- frameworks       optional cocos2d lib
-# |     | -- res              optional cocos2d resources
-# |     + -- (src | packages) compiled lib target, respository pre-built
+# |     | -- main.js*         cocos2d default script
+# |     | -- project.json*    cocos2d manifest
+# |     | -- frameworks*      cocos2d lib
+# |     | -- res              resources
+# |     + -- src              transpiler target, respository pre-builts
 # |           | -- {lib}
 # |           | -- example
 # |           + -- ...
 # | -- .bowerrc               defines ./packages repository
+# | -- travis.yaml*           ci template
 # | -- bower.json             module name, packages
-# | -- Cakefile               this workflow
+# | -- Cakefile               misc tasks
+# | -- changes.md             change log
+# | -- conf.json*             jsdoc configuration
+# | -- csconfig.json*         coffeescript source file list
+# | -- gulpfile.js            npm script runner for webstorm ide
+# | -- index.js               require entry point
+# | -- jsconfig.json          javascript source file list
+# | -- LF                     insert \n between source files with cat
+# | -- license.md             take your pick - MIT/GPL3 
 # | -- package.json           node project info
-# + -- tsconfig.json          optional typescript project file
+# + -- tsconfig.json*         typescript project file
 #
 ###
 

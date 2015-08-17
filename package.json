@@ -9,7 +9,7 @@
     "build": "",
     "clean": "rm -rf build/*",
     "cocos": "cake cocos",
-    "compile": "python  /home/bruce/Applications/closure/library/closure/bin/build/closurebuilder.py --root=/home/bruce/Applications/closure/library/ --root=./goog/lib --root=./goog/example --input=./goog/example/index.js --namespace=asteroids --output_mode=compiled --compiler_jar=/home/bruce/Applications/closure/compiler/compiler.jar --compiler_flag='--compilation_level=ADVANCED_OPTIMIZATIONS' --compiler_flag='--define=goog.userAgent.ASSUME_WEBKIT=true' --compiler_flag='--create_source_map=web/ash.js.map' --compiler_flag='--warning_level=QUIET' --compiler_flag='--language_in=ECMASCRIPT5' > web/ash.min.js",
+    "compile": "python  /home/bruce/Applications/closure/library/closure/bin/build/closurebuilder.py --root=/home/bruce/Applications/closure/library/ --root=./goog/lib --root=./goog/example --input=./goog/example/index.js --namespace=asteroids --output_mode=compiled --compiler_jar=/home/bruce/Applications/closure/compiler/compiler.jar --compiler_flag='--compilation_level=ADVANCED_OPTIMIZATIONS' --compiler_flag='--define=goog.userAgent.ASSUME_WEBKIT=true' --compiler_flag='--create_source_map=web/template.js.map' --compiler_flag='--warning_level=QUIET' --compiler_flag='--language_in=ECMASCRIPT5' > web/template.min.js",
     "config":"cake prebuild:make",
     "convert": "coffee tools/convert.coffee",
     "deploy": "cp -rf web/res web/frameworks/runtime-src/proj.android-studio/app/assets && cp -f web/main.js web/frameworks/runtime-src/proj.android-studio/app/assets && cp -f web/project.json web/frameworks/runtime-src/proj.android-studio/app/assets && cp -rf web/src web/frameworks/runtime-src/proj.android-studio/app/assets",
