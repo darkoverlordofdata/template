@@ -12,7 +12,16 @@
 script project template
 supports WebStorm and VS Code
 
-## Workflow Tasks:
+### Workflow 
+* Mixed typescript. coffeescript, javascript and resources in the lib/ and optional 
+example/ folders are watched, transpiled and or copied to the web/ folder. Classes are still in separate
+files and there are source maps to facilitate debugging.
+* Web folder is built to the build/web folder. This involves cating, minifying and compiling to 
+to one file per library, or even one file per application.
+* Build folder may be published to the project gh-pages
+* Build folder may be deployed downstream to android projects, such as cordova or cocoos2d
+
+### Tasks:
 
 Defined in package.json:
 * *android* build android target
@@ -30,10 +39,9 @@ Defined in package.json:
 * *start* serves web/
 * *serve* build/web/ in broswer
 * *test* run unit tests
-* *transpile* & copy from lib/ to web/src/{libname}
-* *transpile* & copy from example/ to web/src/example
+* *transpile* lib to web/src
 
-## Structure:
+### Structure:
 
       | -- .settings              for vscode
       |     | -- launch.json      F5 to run
