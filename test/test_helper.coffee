@@ -5,7 +5,7 @@
 #
 #
 
-do (template = require("../build/template")) ->
+do () ->
 
 
 
@@ -13,7 +13,4 @@ do (template = require("../build/template")) ->
 
     # Use chai 'should' semantics
     should: value: require('chai').should()
-
-    # The framework
-    template: value: template
 

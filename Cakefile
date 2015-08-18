@@ -252,7 +252,10 @@ task 'config', 'setup cake config', (options) ->
     # process bower dependencies
     #
     ###
-    get: "bower-installer && cake get"
+    get: """
+      bower-installer
+      cake get
+    """
 
     ###
     # Publish
@@ -304,7 +307,10 @@ task 'config', 'setup cake config', (options) ->
     # get the dependencies
     #
     ###
-    postinstall: "bower install &&  npm run get"
+    postinstall: """
+      bower install
+      npm run get
+    """
 
     ###
     # Pre Android
