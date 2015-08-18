@@ -101,23 +101,25 @@ task 'config', 'setup cake config', (options) ->
     ###
     android: do ->
       options.compile ?= 'WHITESPACE_ONLY'
+      
+      step = []
 
       if isCocos2d
         files = getCocos2dFiles(false).join(' LF ')
-        step1 = """
+        step.push("""
           cp -f lib/src/cclib-rt.js web/src/#{project.name}/cclib-rt.js
           cp -f web/main.js ./web/frameworks/runtime-src/proj.android-studio/app/assets/main.js
           cp -f web/project_android.json ./web/frameworks/runtime-src/proj.android-studio/app/assets/project.json
-        """.split('\n').join(' && ')
+        """.split('\n').join(' && '))
 
         if options.compile?
-          step2 = "cat #{files} | java -jar packages/closure-compiler/lib/vendor/compiler.jar --warning_level=QUIET --compilation_level #{options.compile} --js_output_file ./web/frameworks/runtime-src/proj.android-studio/app/assets/#{project.name}.js"
+          step.push("cat #{files} | java -jar packages/closure-compiler/lib/vendor/compiler.jar --warning_level=QUIET --compilation_level #{options.compile} --js_output_file ./web/frameworks/runtime-src/proj.android-studio/app/assets/#{project.name}.js")
         else
-          step2 = """
+          step.push("""
             cp -fr web/src ./web/frameworks/runtime-src/proj.android-studio/app/assets/src
-          """.split('\n').join(' && ')
+          """.split('\n').join(' && '))
 
-        return "#{step1} && #{step2}"
+        return step.join(' && ')
       else # TBD - cordova?
         return ''
 
@@ -128,43 +130,45 @@ task 'config', 'setup cake config', (options) ->
     ###
     build: do ->
       options.compile ?= 'ADVANCED_OPTIMIZATIONS'
+      
+      step = []
 
       if isCocos2d
         ###
         # Use cocos2d project.json to build the target
         ###
         files = getCocos2dFiles(true).join(' LF ')
-        step1 = project.config.build.join(' && ')
+        step.push(project.config.build.join(' && ')) if project.config.build.length
         if options.compile?
-          step2 = "cat #{files} | java -jar packages/closure-compiler/lib/vendor/compiler.jar --jscomp_error=checkTypes --warning_level=QUIET --compilation_level #{options.compile} --js_output_file build/web/main.js"
+          step.push("cat #{files} | java -jar packages/closure-compiler/lib/vendor/compiler.jar --jscomp_error=checkTypes --warning_level=QUIET --compilation_level #{options.compile} --js_output_file build/web/main.js")
         else
-          step2 = """
+          step.push("""
             cp -fr web/src build/web/src
             mkdir build/web/frameworks
             cp -fr web/frameworks/cocos2d-html5 build/web/frameworks/cocos2d-html5
-            """.split('\n').join(' && ')
-        return "#{step1} && #{step2}"
+            """.split('\n').join(' && '))
+        return step.join(' && ')
         
       
       else if projectType is CoffeeScript
         ###
         # Build after recompiling all coffeescript together
         ###
-        step1 = project.config.build.join(' && ')
+        step.push(project.config.build.join(' && ')) if project.config.build.length
         files = require('./csconfig.json').files.join(" LF ")
-        step2 = "cat #{files} | coffee -cs > build/#{project.name}.js"
-        step3 = "cat #{files} | coffee -cs | java -jar packages/closure-compiler/lib/vendor/compiler.jar --compilation_level #{options.compile} --js_output_file build/#{project.name}.js"
-        return "#{step1} && #{step2} && #{step3}"
+        step.push("cat #{files} | coffee -cs > build/#{project.name}.js")
+        step.push("cat #{files} | coffee -cs | java -jar packages/closure-compiler/lib/vendor/compiler.jar --compilation_level #{options.compile} --js_output_file build/#{project.name}.js")
+        return step.join(' && ')
         
       else
         ###
         # Build directly from the raw transpiled javascript
         ###
-        step1 = project.config.build.join(' && ')
+        step.push(project.config.build.join(' && ')) if project.config.build.length
         files = require('./jsconfig.json').files.join(" LF ")
-        step2 = "cat #{files} > build/#{project.name}.js"
-        step3 = "cat #{files} | java -jar packages/closure-compiler/lib/vendor/compiler.jar --compilation_level #{options.compile} --js_output_file build/#{project.name}.js"
-        return "#{step1} && #{step2} && #{step3}"
+        step.push("cat #{files} > build/#{project.name}.js")
+        step.push("cat #{files} | java -jar packages/closure-compiler/lib/vendor/compiler.jar --compilation_level #{options.compile} --js_output_file build/#{project.name}.js")
+        return step.join(' && ')
         
     ###
     # Clean
@@ -384,12 +388,17 @@ task 'config', 'setup cake config', (options) ->
     transpile: do ->
       switch projectType
         when TypeScript then "tsc"
-        when CoffeeScript then "coffee -o web/src/ash -cm lib && coffee -o web/src/example -cm example"
+        when CoffeeScript 
+          step = []
+          step.push("coffee -o web/src/#{project.name} -cm lib")
+          step.push("coffee -o web/src/example -cm example") if fs.existsSync('./example')
+          return step.join(' && ')
+          
 
 
   # fix multiline  script
   for name, script of scripts
-    project.scripts[name] = script.split('\n').join(' && ')
+    project.scripts[name] = (script || '').split('\n').join(' && ')
 
   # update the npm package
   fs.writeFileSync('./package.json', JSON.stringify(project, null, '  '))
