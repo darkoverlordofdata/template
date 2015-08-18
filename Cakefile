@@ -379,7 +379,7 @@ task 'config', 'setup cake config', (options) ->
     # run the unit tests
     #
     ###
-    test: "NODE_ENV=test mocha --reporter nyan"
+    test: "NODE_ENV=test mocha --compilers coffee:coffee-script --require test/test_helper.js --recursive"
 
     ###
     # Transpile
