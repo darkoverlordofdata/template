@@ -7,6 +7,17 @@ fs = require('fs')
 c2c = require('coffee2closure')
 config = require('../jsconfig.json')
 exec = require('child_process').exec
+Walker = require('walker')
+
+
+ls = (path, next) ->
+	files = []
+	(new Walker(path))
+	.filterDir((d, stat) -> true)
+	.on('file', (file, stat) ->
+		files.push(file))
+	.on('end', -> next(files))
+
 
 ###
  * Convert a file name to a valid namespace 
@@ -112,31 +123,40 @@ dependencies = (ns, src) ->
  * @param {string} name of app
  * @param {string} root folder 
 ###
-convert = (name, root=name, section=name, next) ->
+convert = (name, root, files, next) ->
 		
 	exec "coffee -o ./goog/#{root} --no-header -cb ./#{root}", (err, out) ->
 		throw err if err
 		deps = []
-		for file in config[section]
+		for file in files
 			
-			unless file.indexOf('prolog.js') isnt -1
-				ns = getNamespace(file)
-				alt = ns.replace('example', 'asteroids')
-				deps.push(ns)
-				src = fs.readFileSync(file.replace("web/src/#{name}", "./goog/#{root}"), 'utf8')
-				src = src.replace(/'use strict';/, '')
-				src = c2c.fix(src, addGenerateByHeader: false)	
-				src = dependencies(ns, src)
-				ext = externals(alt, src)
-				
-				src = """
-				goog.provide('#{alt}');
-				#{ext}
-				#{src}
-				"""
-				fs.writeFileSync(file.replace("web/src/#{name}", "./goog/#{root}"), src)
+			if file.indexOf('.js.map') is -1
+				if file.indexOf('prolog.js') is -1 and file.indexOf('index.js') is -1
+				# unless file.indexOf('prolog.js') isnt -1
+					ns = getNamespace(file)
+					alt = ns.replace('example', 'asteroids')
+					deps.push(ns)
+					src = fs.readFileSync(file.replace("web/src/#{name}", "./goog/#{root}"), 'utf8')
+					src = src.replace(/'use strict';/, '')
+					src = c2c.fix(src, addGenerateByHeader: false)	
+					src = dependencies(ns, src)
+					ext = externals(alt, src)
+					
+					src = """
+					goog.provide('#{alt}');
+					#{ext}
+					#{src}
+					"""
+					fs.writeFileSync(file.replace("web/src/#{name}", "./goog/#{root}"), src)
 	
 	
 		next?()
 
-convert 'ash', 'lib', 'files', -> convert 'example' # bwa-ha-ha-ha
+dir = {}
+
+ls './web/src/ash/', (files) ->
+	convert 'ash', 'lib', files, -> 
+		ls './web/src/example/', (files) ->
+			convert 'example', 'example', files , ->
+				fs.writeFileSync('./goog/example/index.js', "goog.provide('asteroids');")
+			

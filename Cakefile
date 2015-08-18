@@ -111,7 +111,7 @@ task 'config', 'setup cake config', (options) ->
         """.split('\n').join(' && ')
 
         if options.compile?
-          step2 = "cat #{files} | java -jar tools/compiler.jar --warning_level=QUIET --compilation_level #{options.compile} --js_output_file ./web/frameworks/runtime-src/proj.android-studio/app/assets/#{project.name}.js"
+          step2 = "cat #{files} | java -jar packages/closure-compiler/lib/vendor/compiler.jar --warning_level=QUIET --compilation_level #{options.compile} --js_output_file ./web/frameworks/runtime-src/proj.android-studio/app/assets/#{project.name}.js"
         else
           step2 = """
             cp -fr web/src ./web/frameworks/runtime-src/proj.android-studio/app/assets/src
@@ -134,7 +134,7 @@ task 'config', 'setup cake config', (options) ->
         # Use cocos2d project.json to build the target
         ###
         files = getCocos2dFiles(true).join(' LF ')
-        step1 = package.config.build.join(' && ')
+        step1 = project.config.build.join(' && ')
         if options.compile?
           step2 = "cat #{files} | java -jar packages/closure-compiler/lib/vendor/compiler.jar --jscomp_error=checkTypes --warning_level=QUIET --compilation_level #{options.compile} --js_output_file build/web/main.js"
         else
@@ -150,20 +150,20 @@ task 'config', 'setup cake config', (options) ->
         ###
         # Build after recompiling all coffeescript together
         ###
-        step1 = package.config.build.join(' && ')
+        step1 = project.config.build.join(' && ')
         files = require('./csconfig.json').files.join(" LF ")
         step2 = "cat #{files} | coffee -cs > build/#{project.name}.js"
-        step3 = "cat #{files} | coffee -cs | java -jar tools/compiler.jar --compilation_level #{options.compile} --js_output_file build/#{project.name}.min.js"
+        step3 = "cat #{files} | coffee -cs | java -jar packages/closure-compiler/lib/vendor/compiler.jar --compilation_level #{options.compile} --js_output_file build/#{project.name}.js"
         return "#{step1} && #{step2} && #{step3}"
         
       else
         ###
         # Build directly from the raw transpiled javascript
         ###
-        step1 = package.config.build.join(' && ')
+        step1 = project.config.build.join(' && ')
         files = require('./jsconfig.json').files.join(" LF ")
         step2 = "cat #{files} > build/#{project.name}.js"
-        step3 = "cat #{files} | java -jar tools/compiler.jar --compilation_level #{options.compile} --js_output_file build/#{project.name}.min.js"
+        step3 = "cat #{files} | java -jar packages/closure-compiler/lib/vendor/compiler.jar --compilation_level #{options.compile} --js_output_file build/#{project.name}.js"
         return "#{step1} && #{step2} && #{step3}"
         
     ###
@@ -171,7 +171,11 @@ task 'config', 'setup cake config', (options) ->
     # delete the prior build items
     #
     ###
-    clean: "rm -rf build/*"
+    clean: """
+      rm -rf build/*
+      mkdir build/web
+      mkdir build/lib
+    """
 
     ###
     # Closure Build
@@ -184,7 +188,7 @@ task 'config', 'setup cake config', (options) ->
         --root=./goog/lib \
         --root=./goog/example \
         --input=./goog/example/index.js \
-        --namespace=#{project.name} \
+        --namespace=asteroids \
         --output_mode=compiled \
         --compiler_jar=packages/closure-compiler/lib/vendor/compiler.jar \
         --compiler_flag='--compilation_level=ADVANCED_OPTIMIZATIONS' \
@@ -278,7 +282,18 @@ task 'config', 'setup cake config', (options) ->
     # update the cocos2d project file?
     #
     ###
-    postbuild: "cp -f web/project_build.json build/web/project.json"
+    postbuild: do ->
+      cmd = "cp build/#{project.name}.js build/web"
+      if isCocos2d
+        cmd += "\ncp -f web/project_build.json build/web/project.json"
+      return cmd
+
+    ###
+    # Post Closure Build
+    # generate dep.js
+    #
+    ###
+    postclosurebuild: "npm run depswriter"
 
     ###
     # Post Install
@@ -335,7 +350,11 @@ task 'config', 'setup cake config', (options) ->
     # copy the resources
     #
     ###
-    resources: "cp -rf lib/res web/res"
+    resources: do ->
+      if project.config.resources?
+        return project.config.resources.join(' && ')
+      else 
+        return ''
 
     ###
     # Sart
