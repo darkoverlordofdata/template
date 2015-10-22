@@ -5,7 +5,10 @@
         "noImplicitAny": false,
         "removeComments": false,
         "preserveConstEnums": false,
-        "sourceMap": true
+        "sourceMap": true,
+        "experimentalDecorators": true,
+        "outDir": "web/src/spacewar"
+
     },
 
     "files": [
