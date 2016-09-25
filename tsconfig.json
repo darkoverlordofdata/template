@@ -1,14 +1,12 @@
 {
     "compilerOptions": {
-        "target": "ES5",
-        "module": "commonjs",
+        "target": "es6",
         "noImplicitAny": false,
         "removeComments": false,
         "preserveConstEnums": false,
         "sourceMap": true,
         "experimentalDecorators": true,
-        "outDir": "web/src/spacewar"
-
+        "outDir": "web/src/{{ name }}"
     },
 
     "files": [

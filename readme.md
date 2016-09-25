@@ -10,12 +10,10 @@
 #Template
 
 script project template
-supports WebStorm and VS Code
+supports VS Code
 
 ### Workflow 
-* Mixed typescript. coffeescript, javascript and resources in the lib/ and optional 
-example/ folders are watched, transpiled and or copied to the web/ folder. Classes are still in separate
-files and there are source maps to facilitate debugging.
+* Use tsc to compile
 * Web folder is built to the build/web folder. This involves cating, minifying and compiling to 
 to one file per library, or even one file per application.
 * Build folder may be published to the project gh-pages
@@ -24,27 +22,24 @@ to one file per library, or even one file per application.
 ### Tasks:
 
 Defined in package.json:
-* *android* build android target
+* *_vscode_build* interactive build
 * *build* builds the primary target 
 * *clean* delete prior build
-* *compile* runs closurebuilder.py
-* *config* creates build script in package.json 
-* *convert* converts the coffeescript outputs for closure
-* *deploy* build/web to another folder
-* *get* prebuilt libraries from repository
-* *jsdoc* create documnetation from closure version
-* *manifest* create an appcache manifest in the build/web/ folder
+* *doc* create typedoc
+* *postinstall* runs bower to get packages for web
+* *prebuild* make sure it's a clean build
 * *publish* build/web to gh-pages
-* *resources* copy the resources
 * *start* serves web/
 * *serve* build/web/ in broswer
 * *test* run unit tests
-* *transpile* lib to web/src
 
 ### Structure:
 
-      | -- .settings              for vscode
+      | -- .vscode                for vscode
       |     | -- launch.json      F5 to run
+      |     | -- launch.nw.json
+      |     | -- launch.server.json
+      |     | -- server           simple server
       |     | -- settings.json    ide preferences
       |     + -- tasks.json       npm script runner
       | -- bin                    public tools
@@ -54,16 +49,8 @@ Defined in package.json:
       | -- node_modules           npm dependencies
       | -- packages               local repository
       | -- test                   unit tests
-      | -- tools                  private tools
-      |     | -- compiler.jar     closure compiler
-      |     | -- convert.coffee   coffee2closure script
-      |     | -- diff.coffee      diff_match_patch script
-      |     + -- server.js        for F5 in vscode
       | -- web                    application root. For library, this uses example
       |     | -- index.html       default web page
-      |     | -- main.js*         cocos2d default script
-      |     | -- project.json*    cocos2d manifest
-      |     | -- frameworks*      cocos2d lib
       |     | -- res              resources
       |     + -- src              transpiler target, respository pre-builts
       |           | -- {lib}
@@ -72,14 +59,9 @@ Defined in package.json:
       | -- .bowerrc               defines ./packages repository
       | -- travis.yaml*           ci template
       | -- bower.json             module name, packages
-      | -- Cakefile               misc tasks
       | -- changes.md             change log
-      | -- conf.json*             jsdoc configuration
-      | -- csconfig.json*         coffeescript source file list
-      | -- gulpfile.js            npm script runner for webstorm ide
+      | -- gulpfile.js            npm script runner 
       | -- index.js               require entry point
-      | -- jsconfig.json          javascript source file list
-      | -- LF                     insert \n between source files with cat
       | -- license.md             take your pick - MIT/GPL3 
       | -- package.json           node project info
       + -- tsconfig.json*         typescript project file
